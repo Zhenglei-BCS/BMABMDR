@@ -909,8 +909,8 @@ BMDWeights <- function(mod.obj, type = c('continuous', 'quantal')) {
       conv <- data.frame(Model = as.vector(get_models('continuous')),
                          Converged = mod.obj$convergence)
 
-      return(merge(merge(merge(BMDs, wts_BS, by = "Model", sort = FALSE),
-                         wts_LP, by = "Model", sort = FALSE), conv, by = 'Model', sort = FALSE))
+      return(merge(merge(merge(BMDs, wts_BS, by = "Model", sort = FALSE, all.x = T),
+                         wts_LP, by = "Model", sort = FALSE, all.x = T), conv, by = 'Model', sort = FALSE, all.x = T))
     } else if(is.BMADR2(mod.obj)[2] == 2) {
 
       wts_LP <- weights_extract(mod.obj, type = "LP")

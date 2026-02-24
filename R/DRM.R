@@ -2,7 +2,7 @@
 #'
 #' These are the dose response models used internally in the BMA functions.
 #'
-#' @param par parameters in the order min response, BMD, fold change (for continuous data only), d
+#' @param par parameters in the order min response, BMD, fold change (for continuous data only), log(d)
 #' @param x unique rescaled ordered dose levels
 #' @param q specified BMR
 #' @param shift shift in the response in case of negative geometric means

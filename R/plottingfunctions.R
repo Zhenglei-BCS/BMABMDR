@@ -151,6 +151,7 @@ plot.BMADR <- function(mod.obj,
   }
 
   BMDW <- BMDWeights(mod.obj)
+  BMDW <- BMDW[BMDW$Model %in% mod.obj$models_included,]
   BMDBMA <- BMDMA_extract(mod.obj, conv = conv)
 
   if(clustered == TRUE){
@@ -170,9 +171,17 @@ plot.BMADR <- function(mod.obj,
   }
 
   dose <- sort(unique(mod.obj$dataN$dose)/max(mod.obj$dataN$dose))
+  if(weight_type == 'BS'){
+    mindose <- min(mod.obj$BMDMixtureBS)/2
+  }else{
+    mindose <- min(mod.obj$BMDMixture)/2
+  }
   if(min(dose) == 0){
-    ddd <- c(min(dose[dose > 0])/4, dose[2:length(dose)])
-    lg10d <- c(log10(min(dose[dose > 0])/4), log10(dose[2:length(dose)]))
+    # ddd <- c(min(dose[dose > 0])/4, dose[2:length(dose)])
+    ddd <- c(mindose, dose[2:length(dose)])
+
+    # lg10d <- c(log10(min(dose[dose > 0])/4), log10(dose[2:length(dose)]))
+    lg10d <- c(log10(mindose), log10(dose[2:length(dose)]))
     bmdl <- log10(BMDW$BMDL/mod.obj$max.dose)
     bmdlo <- BMDW$BMDL/mod.obj$max.dose
     # lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
@@ -184,15 +193,15 @@ plot.BMADR <- function(mod.obj,
     lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
                        # log10(min(mod.obj$MA_post/mod.obj$max.dose)/2),
                        min(bmdl, na.rm = T),
-                       log10(min(dose[dose > 0])/4))
+                       log10(mindose))
     ddd[1] <- ifelse(min(bmdlo, na.rm=T) < ddd[1],
                      # min(mod.obj$MA_post/mod.obj$max.dose)/2,
                      # min(exp(bmdl), na.rm = T),
                      min(bmdlo, na.rm = T),
-                     min(dose[dose > 0])/4)
+                     mindose)
   }else{
-    ddd <- c(min(dose)/4, dose)
-    lg10d <- c(log10(min(dose)/4), log10(dose))
+    ddd <- c(mindose, dose)
+    lg10d <- c(log10(mindose), log10(dose))
     bmdl <- log10(BMDW$BMDL/mod.obj$max.dose)
     bmdlo <- BMDW$BMDL/mod.obj$max.dose
     # lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
@@ -204,12 +213,12 @@ plot.BMADR <- function(mod.obj,
     lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
                        # log10(min(mod.obj$MA_post/mod.obj$max.dose)/2),
                        min(bmdl, na.rm = T),
-                       log10(min(dose)/4))
+                       log10(mindose))
     ddd[1] <- ifelse(min(bmdlo, na.rm=T) < ddd[1],
                      # min(mod.obj$MA_post/mod.obj$max.dose)/2,
                      # min(exp(bmdl), na.rm = T),
                      min(bmdlo, na.rm = T),
-                     min(dose)/4)
+                     mindose)
   }
 
 
@@ -348,11 +357,24 @@ plot.BMADR <- function(mod.obj,
   dgr <- seq(min(lg10d), abs(min(lg10d)), by=0.01)
   dose2 <- 10^dgr[(dgr > (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]
   if(clustered == F){
+    # preds <- predict.BMADR(mod.obj, dose = c(0, dose2[2:length(dose2)]),
+    #                        type = type, what = "predicted",
+    #                        model_averaged = TRUE,
+    #                        weight_type = weight_type)
+    # preds$predicted$Dose[preds$predicted$Dose==0] <- dose2[1]
+    # preds$model_averaged$Dose[preds$model_averaged$Dose==0] <- dose2[1]
     preds <- predict.BMADR(mod.obj, dose = dose2,
                            type = type, what = "predicted",
                            model_averaged = TRUE,
                            weight_type = weight_type)
   }else if(clustered == T){
+    # preds <- predict.BMADR(mod.obj, dose = c(0, dose2[2:length(dose2)]),
+    #                        type = type, what = "predicted",
+    #                        model_averaged = TRUE,
+    #                        clustered = TRUE,
+    #                        weight_type = weight_type)
+    # preds$predicted$Dose[preds$predicted$Dose==0] <- dose2[1]
+    # preds$model_averaged$Dose[preds$model_averaged$Dose==0] <- dose2[1]
     preds <- predict.BMADR(mod.obj, dose = dose2,
                            type = type, what = "predicted",
                            model_averaged = TRUE,
@@ -392,6 +414,15 @@ plot.BMADR <- function(mod.obj,
                              preds$model_averaged$Dose==min(preds$model_averaged$Dose)],
                              length(dgrprime))
   )
+  if(weight_type=='BS'){
+    wts_BS <- weights_extract(mod.obj, type = "BS")
+    min_model <- as.vector(as_per_model$min_response[as_per_model$Model %in% wts_BS$Model])
+    preds_min2$min_response <- sum(min_model*wts_BS$BS_Weights)
+  }else{
+    wts_LP <- weights_extract(mod.obj, type = "LP")
+    min_model <- as.vector(as_per_model$min_response[as_per_model$Model %in% wts_LP$Model])
+    preds_min2$min_response <- sum(min_model*wts_LP$LP_Weights)
+  }
 
   #preds$predicted$Dose <- preds$predicted$Dose*mod.obj$max.dose
   #preds$model_averaged$Dose <- preds$model_averaged$Dose*mod.obj$max.dose
@@ -703,7 +734,7 @@ plot.BMADR <- function(mod.obj,
            caption = paste0("data and vertical bars based on arithmetic sample means +- standard deviation \n red dot and horizontal green bar indicate the model-averaged BMD and its ",
                             (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
 
-      geom_segment(data = preds_min[preds_min$Distribution=="N",],
+      geom_segment(data = preds_min[preds_min$Distribution=="N" & paste0(preds_min$Model,"_N") %in% mod.obj$models_included,],
                    mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                  xend = max(Dose*mod.obj$max.dose),#max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                  yend = predicted,
@@ -781,7 +812,7 @@ plot.BMADR <- function(mod.obj,
            y = expression(response),
            caption = paste0("data and vertical bars based on geometric sample means +- standard deviation \n red dot and horizontal green bar indicate the model-averaged BMD and its ",
                             (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
-      geom_segment(data = preds_min[preds_min$Distribution=="LN",],
+      geom_segment(data = preds_min[preds_min$Distribution=="LN" & paste0(preds_min$Model,"_LN") %in% mod.obj$models_included,],
                    mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                  xend = max(Dose*mod.obj$max.dose), #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                  yend = predicted,
@@ -847,7 +878,8 @@ plot.BMADR <- function(mod.obj,
            y = expression(response), title = "", caption = paste0("red dot and horizontal green bar indicate the model-averaged BMD and its ",
                                                                   (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
 
-      geom_segment(data = preds_min, mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
+      geom_segment(data = preds_min[which(paste(preds_min$Model, preds_min$Distribution, sep = '_') %in% mod.obj$models_included),],
+                   mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                                    xend = max(Dose*mod.obj$max.dose), #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                                    yend = predicted,
                                                    group = interaction(Model, Distribution),
@@ -913,8 +945,8 @@ plot.BMADR <- function(mod.obj,
            caption = paste0("green dots show the individual data, black dots represent the litter means \n diamonds represent the arithmetic sample mean \n red dot and horizontal green bar indicate the model-averaged BMD and its ",
                             (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
 
-      geom_segment(data = preds_min[preds_min$Distribution=="N",],
-                   mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
+      geom_segment(data = preds_min[preds_min$Distribution=="N" & paste0(preds_min$Model,"_N") %in% mod.obj$models_included,],
+                   mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response, # dotted line starts at estimated background response
                                  xend = max(Dose*mod.obj$max.dose),#max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                  yend = predicted,
                                  group = interaction(Model, Distribution),
@@ -986,7 +1018,7 @@ plot.BMADR <- function(mod.obj,
            caption = paste0("green dots show the individual data, black dots represent the litter means \n diamonds represent the arithmetic sample mean \n red dot and horizontal green bar indicate the model-averaged BMD and its ",
                             (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
 
-      geom_segment(data = preds_min[preds_min$Distribution=="LN",],
+      geom_segment(data = preds_min[preds_min$Distribution=="LN" & paste0(preds_min$Model,"_LN") %in% mod.obj$models_included,],
                    mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                  xend = max(Dose*mod.obj$max.dose), #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                  yend = predicted,
@@ -1062,7 +1094,8 @@ plot.BMADR <- function(mod.obj,
            y = expression(response), title = "", caption = paste0("red dot and horizontal green bar indicate the model-averaged BMD and its ",
                                                                   (mod.obj$pvec[3]-mod.obj$pvec[1])*100 ,"%CI")) +
 
-      geom_segment(data = preds_min, mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
+      geom_segment(data = preds_min[which(paste(preds_min$Model, preds_min$Distribution, sep = '_') %in% mod.obj$models_included),],
+                   mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                                    xend = max(Dose*mod.obj$max.dose), #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                                    yend = predicted,
                                                    group = interaction(Model, Distribution),
@@ -1116,7 +1149,8 @@ plot.BMADR <- function(mod.obj,
 
   }
 
-  cmax <- max(preds$model_averaged$model_averaged)
+  # cmax <- max(preds$model_averaged$model_averaged)
+  cmax <- max(max(preds$model_averaged$model_averaged), preds_min2$min_response[1])
   cmin <- min(preds$model_averaged$model_averaged)
   # BMDMixture$yres <- (BMDMixture$y/max(BMDMixture$y)) * (cmax * 1.2) # Density rescaled
 
@@ -1153,7 +1187,7 @@ plot.BMADR <- function(mod.obj,
     #           linetype = "dotted", alpha = 1,
     #           size = 3, inherit.aes = FALSE, show.legend = FALSE) +
 
-    geom_segment(data = preds_min2, mapping = aes(x = Dose[1]*mod.obj$max.dose, y = MA,
+    geom_segment(data = preds_min2, mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                                   xend = max(Dose*mod.obj$max.dose),
                                                   #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
                                                   yend = preds$model_averaged$model_averaged[1],
@@ -1431,9 +1465,14 @@ plot.BMADRQ <- function(mod.obj,
   }
 
   dose <- sort(unique(mod.obj$data$dose)/max(mod.obj$data$dose))
+  if(weight_type == 'BS'){
+    mindose <- min(mod.obj$BMDMixtureBS)/2
+  }else{
+    mindose <- min(mod.obj$BMDMixture)/2
+  }
   if(min(dose) == 0){
-    ddd <- c(min(dose[dose > 0])/4, dose[2:length(dose)])
-    lg10d <- c(log10(min(dose[dose > 0])/4), log10(dose[2:length(dose)]))
+    ddd <- c(mindose, dose[2:length(dose)])
+    lg10d <- c(log10(mindose), log10(dose[2:length(dose)]))
     bmdl <- log10(BMDW$BMDL/mod.obj$max.dose)
     bmdlo <- BMDW$BMDL/mod.obj$max.dose
     # lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
@@ -1444,13 +1483,13 @@ plot.BMADRQ <- function(mod.obj,
     #                  min(dose[dose > 0])/4)
     lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
                        log10(min(mod.obj$MA_post/mod.obj$max.dose)/2),
-                       log10(min(dose[dose > 0])/4))
+                       log10(mindose))
     ddd[1] <- ifelse(min(bmdlo, na.rm=T) < ddd[1],
                      min(mod.obj$MA_post/mod.obj$max.dose)/2,
-                     min(dose[dose > 0])/4)
+                     mindose)
   }else{
-    ddd <- c(min(dose)/4, dose)
-    lg10d <- c(log10(min(dose)/4), log10(dose))
+    ddd <- c(mindose, dose)
+    lg10d <- c(log10(mindose), log10(dose))
     bmdl <- log10(BMDW$BMDL/mod.obj$max.dose)
     bmdlo <- BMDW$BMDL/mod.obj$max.dose
     # lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
@@ -1461,10 +1500,10 @@ plot.BMADRQ <- function(mod.obj,
     #                  min(dose)/4)
     lg10d[1] <- ifelse((min(bmdl, na.rm=T) < lg10d[1] & min(bmdl, na.rm=T)!='-Inf' ),
                        log10(min(mod.obj$MA_post/mod.obj$max.dose)/2),
-                       log10(min(dose)/4))
+                       log10(mindose))
     ddd[1] <- ifelse(min(bmdlo, na.rm=T) < ddd[1],
                      min(mod.obj$MA_post/mod.obj$max.dose)/2,
-                     min(dose)/4)
+                     mindose)
   }
 
 
@@ -1496,6 +1535,12 @@ plot.BMADRQ <- function(mod.obj,
   dgr <- seq(min(lg10d), abs(min(lg10d)), by=0.01)
   #dgr2 <- seq(min(ddd), abs(max(ddd)), by=0.01)
   dose2 <- 10^dgr[(dgr > (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]
+  # preds <- predict.BMADRQ(mod.obj, dose = c(0, dose2[2:length(dose2)]),
+  #                         what = "predicted",
+  #                         model_averaged = TRUE,
+  #                         weight_type = weight_type)
+  # preds$predicted$Dose[preds$predicted$Dose==0] <- dose2[1]
+  # preds$model_averaged$Dose[preds$model_averaged$Dose==0] <- dose2[1]
   preds <- predict.BMADRQ(mod.obj, dose = dose2,
                           what = "predicted",
                           model_averaged = TRUE,
