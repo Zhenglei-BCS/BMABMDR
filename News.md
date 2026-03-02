@@ -2,6 +2,10 @@
 
 Whenever changes are expected to influence modeling results, this is explicitly mentioned here.
 
+## BMABMDR 0.1.20
+
+* corrected plotting functions to display BMD posterior always above 0
+
 ## BMABMDR 0.1.19
 
 * corrected plotting functions

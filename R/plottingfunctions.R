@@ -172,10 +172,11 @@ plot.BMADR <- function(mod.obj,
 
   dose <- sort(unique(mod.obj$dataN$dose)/max(mod.obj$dataN$dose))
   if(weight_type == 'BS'){
-    mindose <- min(mod.obj$BMDMixtureBS)/2
+    mindose <- min(mod.obj$BMDMixtureBS/mod.obj$max.dose)
   }else{
-    mindose <- min(mod.obj$BMDMixture)/2
+    mindose <- min(mod.obj$BMDMixture/mod.obj$max.dose)
   }
+
   if(min(dose) == 0){
     # ddd <- c(min(dose[dose > 0])/4, dose[2:length(dose)])
     ddd <- c(mindose, dose[2:length(dose)])
@@ -1150,8 +1151,14 @@ plot.BMADR <- function(mod.obj,
   }
 
   # cmax <- max(preds$model_averaged$model_averaged)
-  cmax <- max(max(preds$model_averaged$model_averaged), preds_min2$min_response[1])
-  cmin <- min(preds$model_averaged$model_averaged)
+  if(type=='decreasing'){
+    cmax <- max(max(preds$model_averaged$model_averaged), preds_min2$min_response[1])
+    cmin <- min(preds$model_averaged$model_averaged)
+  }else{
+    cmax <- max(preds$model_averaged$model_averaged)
+    cmin <- min(min(preds$model_averaged$model_averaged), preds_min2$min_response[1])
+  }
+
   # BMDMixture$yres <- (BMDMixture$y/max(BMDMixture$y)) * (cmax * 1.2) # Density rescaled
 
   ylim.prim <- c(cmin, cmax)
@@ -1166,6 +1173,9 @@ plot.BMADR <- function(mod.obj,
 
   dplot <- ggplot(data = preds$model_averaged, aes(x = Dose*mod.obj$max.dose, y = model_averaged,
                                                    group = 1)) +
+  # dplot <- ggplot(data = preds$model_averaged, aes(x = Dose, y = model_averaged,
+  #                                                  group = 1)) +
+
     geom_line(show.legend = FALSE, linetype = "dashed", size = 3) +
     # ylim(min(preds$model_averaged$model_averaged), max(preds$model_averaged$model_averaged)) +
     #geom_col(data = BMDMixture2, aes(x = Dose2, y = yres, fill = Model), alpha = 0.6,
@@ -1186,6 +1196,15 @@ plot.BMADR <- function(mod.obj,
     # geom_line(data = preds_min2, mapping = aes(x = Dose, y = log10MA),
     #           linetype = "dotted", alpha = 1,
     #           size = 3, inherit.aes = FALSE, show.legend = FALSE) +
+    # geom_segment(data = preds_min2, mapping = aes(x = Dose[1], y = min_response,
+    #                                               xend = max(Dose),
+    #                                               #max(dgr[(dgr <= (lg10d[2]-((lg10d[2]-lg10d[1])/2)))]),
+    #                                               yend = preds$model_averaged$model_averaged[1],
+    #                                               # group = interaction(Model, Distribution),
+    #                                               # color = Model
+    # ),
+    # linetype = "dotted",
+    # size = 3, inherit.aes = FALSE, show.legend = FALSE) +
 
     geom_segment(data = preds_min2, mapping = aes(x = Dose[1]*mod.obj$max.dose, y = min_response,
                                                   xend = max(Dose*mod.obj$max.dose),
@@ -1224,6 +1243,10 @@ plot.BMADR <- function(mod.obj,
                              2*mod.obj$max.dose),
                     # ylim =  c(min(BMDMixture2$yres)*0.9, max(BMDMixture2$yres)*1.1)) +
                     ylim = c(min(BMDMixture2$yres), max(BMDMixture2$yres)*1.1)) +
+    # coord_cartesian(xlim = c(min(preds_min$Dose),
+    #                          2*mod.obj$max.dose),
+    #                 # ylim =  c(min(BMDMixture2$yres)*0.9, max(BMDMixture2$yres)*1.1)) +
+    #                 ylim = c(min(BMDMixture2$yres), max(BMDMixture2$yres)*1.1)) +
     # coord_cartesian(xlim = c(min(mod.obj$MA_post),
     #                          2*mod.obj$max.dose),
     #                 ylim =  c(min(BMDMixture2$yres)*0.9, max(BMDMixture2$yres)*1.1)) +
