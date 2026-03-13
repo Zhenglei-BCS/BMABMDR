@@ -1,0 +1,238 @@
+---
+title: "Bug analysis: inconsistent prior.weights normalisation in full.laplace_MA()"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Overview
+
+`full.laplace_MA()` accepts a `prior.weights` vector that lets users specify which
+of the 16 candidate models should be included (1 = include, 0 = exclude). The vector
+can also carry fractional values to express **informative prior model probabilities**
+, for example, down-weighting certain model families before seeing the data.
+
+The bug: **the vector is normalised in two different, mutually incompatible ways
+at two different points in the same function**, so the final posterior model weights
+are not proportional to what the user supplied.
+
+---
+
+## Where the two normalisations happen
+
+### Normalisation 1 - inside `fun.w()` loop (line ~1542)
+
+After all model-specific Laplace approximations have been computed, the raw
+unnormalised Laplace approximation weights are combined with the prior weights:
+
+```r
+# fun_Laplace.R, near the end of the Laplace weight block
+prior.weights = prior.weights/sum(prior.weights)          # <-- Normalisation 1
+lpw = (prior.weights * w) / sum(prior.weights * w)
+```
+
+At this point `prior.weights` is divided by the **total sum of all elements**,
+including the zeros. Because zeros contribute nothing to the sum, the non-zero
+elements are rescaled to sum to 1.
+
+For a uniform inclusion vector `c(1,1,1,1,0,0,...,0)` (4 models included):
+
+```{r norm1}
+prior.weights <- c(1, 1, 1, 1, rep(0, 12))
+
+# Normalisation 1: divide by sum of ALL elements
+prior.weights_norm1 <- prior.weights / sum(prior.weights)
+prior.weights_norm1
+# [1] 0.25 0.25 0.25 0.25  0    0  ...  0
+# Included models each get prior weight 0.25  ✓
+```
+
+This is correct for the uniform case. When a user passes fractional weights,
+however, the weights after normalisation are proportional to the original values,
+which is the expected behaviour:
+
+```{r norm1_fractional}
+prior.weights_frac <- c(2, 1, 1, 1, rep(0, 12))
+
+prior.weights_frac / sum(prior.weights_frac)
+# E4_N gets twice the prior probability of each other included model  ✓
+```
+
+### Normalisation 2 - in `sampling_MA()` (line ~1322)
+
+The `sampling_MA()` function performs an **identical** initial normalisation step,
+but places it at the start of the weight-computation block rather than after model
+fitting:
+
+```r
+# fun_Sampling.R, bridge-sampling weight block
+p.weights = prior.weights / sum(prior.weights)            # <-- Normalisation 2
+```
+
+And in the convergence-fallback path:
+
+```r
+prior.weights.new = prior.weights
+prior.weights.new[div.models] = 0
+p.weights.new = prior.weights.new / sum(prior.weights.new) # <-- Normalisation 2b
+```
+
+Here the same formula is applied, but **before** any models are removed due to
+fitting failure. Contrast this with `full.laplace_MA()`, where `prior.weights[k]`
+is set to `0` *in-place* for models that fail to converge **before** the
+normalisation step runs. The normalisation in `full.laplace_MA()` therefore
+automatically absorbs failed models; the normalisation in `sampling_MA()` does not.
+
+---
+
+## Demonstrating the inconsistency
+
+The core issue becomes visible with a simple numerical example. Suppose the user
+specifies equal weights for all 16 models, but model 5 (`G4_N`) fails during
+optimisation inside `full.laplace_MA()`.
+
+```{r demo}
+# Simulate what full.laplace_MA() does internally
+
+# User supplies equal weights
+prior.weights <- rep(1, 16)
+
+# Model 5 fails; its weight is zeroed out inside the loop
+prior.weights[5] <- 0
+
+# Normalisation 1 (as coded in full.laplace_MA)
+pw_laplace <- prior.weights / sum(prior.weights)
+pw_laplace
+# 15 models each receive 1/15 ≈ 0.0667
+sum(pw_laplace)    # 1.0
+
+# Now simulate sampling_MA: normalisation happens BEFORE model 5 is known to fail
+prior.weights_orig <- rep(1, 16)
+pw_sampling <- prior.weights_orig / sum(prior.weights_orig)
+pw_sampling
+# All 16 models each receive 1/16 = 0.0625
+sum(pw_sampling)   # 1.0
+
+# When model 5 later fails, sampling_MA does NOT re-normalise;
+# it simply passes pw_sampling[5] = 0.0625 as the prior probability for a
+# model that doesn't exist. The posterior model probabilities returned by
+# bridgesampling::post_prob() will use prior_prob values that do NOT sum to 1
+# over the surviving models.
+surviving        <- pw_sampling[-5]       # the 15 active models
+surviving_normed <- surviving / sum(surviving)
+cat("bridge sampling prior for surviving models sums to:", sum(surviving), "\n")
+# 0.9375, not 1.0 - i.e. 6.25% prior weight has silently disappeared
+```
+
+The consequence is that bridge sampling receives `prior_prob` values summing to
+`1 - 1/16 = 0.9375` instead of 1.0. While `bridgesampling::post_prob()` re-normalises
+internally, this means the user's original equal-weight intention is respected, but
+the *divergent-model fallback* path (`prior.weights.new`) re-normalises a second
+time, creating a subtle double-normalisation:
+
+```{r double_norm}
+# Divergent-model fallback in sampling_MA
+prior.weights_new <- rep(1, 16)
+prior.weights_new[5] <- 0                    # model 5 diverged
+
+# Normalisation applied to NEW weights (already derived from original pw)
+p.weights.new <- prior.weights_new / sum(prior.weights_new)
+p.weights.new
+# Each surviving model: 1/15 = 0.0667  ✓  (correct here)
+
+# BUT p.weights was already computed from the ORIGINAL weights:
+p.weights_orig <- rep(1, 16) / 16    # = 0.0625 each, including model 5
+
+# The two are inconsistent: p.weights uses 16 models, p.weights.new uses 15.
+# The initial lpwb is computed from p.weights (16 models),
+# then lpwb.conv is computed from p.weights.new (15 models),
+# but the final returned weights mix results from both computations.
+```
+
+---
+
+## The inconsistency between `full.laplace_MA()` and `sampling_MA()` side-by-side
+
+```{r comparison}
+# Helper: show effective prior weight per model after normalisation
+
+pw_user <- c(2, 1, 1, 1, rep(0, 12))   # user wants E4_N twice as likely
+
+# What full.laplace_MA() does:
+# Step 1: models with prior.weights == 0 are NEVER fitted (weight stays 0)
+# Step 2: weights normalised AFTER fitting
+pw_laplace_final <- pw_user / sum(pw_user)
+round(pw_laplace_final[1:4], 4)
+# E4_N: 0.40, IE4_N: 0.20, H4_N: 0.20, LN4_N: 0.20  ✓
+
+# What sampling_MA() does:
+# Step 1: weights normalised BEFORE fitting
+pw_sampling_init <- pw_user / sum(pw_user)
+round(pw_sampling_init[1:4], 4)
+# E4_N: 0.40, IE4_N: 0.20, H4_N: 0.20, LN4_N: 0.20
+# (Happens to match here for the simple case where no model fails)
+
+# But if model 2 (IE4_N) fails inside sampling_MA:
+# full.laplace_MA() re-normalises over {E4_N, H4_N, LN4_N} → 0.50, 0.25, 0.25
+pw_user_after_fail <- pw_user
+pw_user_after_fail[2] <- 0
+pw_laplace_refail  <- pw_user_after_fail / sum(pw_user_after_fail)
+round(pw_laplace_refail[c(1, 3, 4)], 4)
+# E4_N: 0.50, H4_N: 0.25, LN4_N: 0.25  ← re-normalised correctly
+
+# sampling_MA() does NOT re-normalise prior weights after a fit failure;
+# it zeros the marginal likelihood contribution and relies on post_prob() to
+# handle the remaining models - but p.weights passed still sum to 0.8, not 1.
+pw_sampling_after_fail <- pw_sampling_init
+pw_sampling_after_fail[2] <- 0
+cat("sampling_MA prior sum after failure:", sum(pw_sampling_after_fail[c(1,3,4)]), "\n")
+# 0.80 — not 1.0, inconsistent with full.laplace_MA's 1.0
+```
+
+---
+
+## Impact summary
+
+| Scenario | `full.laplace_MA()` | `sampling_MA()` |
+|---|---|---|
+| All models converge, equal weights | Correct | Correct |
+| Some models fail, equal weights | Correct (re-normalises) | Minor error (prior sums < 1 before `post_prob` re-normalises) |
+| Some models fail, **informative** weights | Correct | **Incorrect**: surviving prior probs do not preserve user's ratios |
+| User passes `c(1,1,0,...,0)` | Correct | Correct (zeros excluded cleanly) |
+
+The practical impact is small in most default-usage scenarios because
+`bridgesampling::post_prob()` internally normalises its `prior_prob` argument.
+However, when the user specifies **unequal, informative prior weights** and some
+models diverge, the final posterior model weights in `sampling_MA()` will not
+correctly reflect the specified prior model probabilities.
+
+---
+
+## Recommended fix
+
+The fix is to adopt one consistent normalisation strategy. The cleanest approach
+is to **defer normalisation until after model fitting** in both functions, normalising
+only over models that actually produced a valid result.
+
+```r
+# Proposed unified approach (applies to both full.laplace_MA and sampling_MA)
+
+# After fitting loop: zero out failed/diverged models
+failed_idx <- which(converged == 0 | !models_fitted)
+prior.weights[failed_idx] <- 0
+
+# Normalise once over surviving models
+if (sum(prior.weights) == 0) {
+  stop("All candidate models failed to fit.")
+}
+prior.weights <- prior.weights / sum(prior.weights)
+
+# Then compute posterior model probabilities
+lpw <- (prior.weights * w) / sum(prior.weights * w)
+```
+
+This makes the normalisation logic identical across both functions, ensures the user's
+relative weighting intentions are preserved after failures, and removes the current
+asymmetry between the two code paths.
