@@ -2,7 +2,7 @@ functions {
   real pert_dist_lpdf(real theta, real lb, real md, real ub, real gama){
     real x1;
     real x2;
-    real x3;
+    real x3; //
     real x4;
     real alpha;
     real beta;
