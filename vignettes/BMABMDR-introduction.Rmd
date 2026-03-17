@@ -11,6 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
+  warning = FALSE,
   eval = TRUE # set FALSE to keep build times short; flip to TRUE with a fast machine
 )
 ```
@@ -394,12 +395,7 @@ data_N_indiv <- PREP_DATA_N(
 ## Extracting and printing results
 
 ```{r results}
-# Print the MA credible interval
-print(fit_lp)
-
-# Full summary: per-model parameters + weights
-summary(fit_lp)
-
+## ummary(fit_lp$H4_LN)
 # Posterior draws from the MA distribution (on original dose scale)
 hist(fit_lp$BMDMixture, breaks = 50,
      main = "Model-averaged BMD posterior",
