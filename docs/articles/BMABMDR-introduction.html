@@ -213,7 +213,6 @@ positions, which correspond to the positions in the
 </tr>
 </tbody>
 </table>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="continuous-data-laplace-approximation">Continuous data — Laplace approximation<a class="anchor" aria-label="anchor" href="#continuous-data-laplace-approximation"></a>
@@ -351,7 +350,6 @@ than the default:</p>
 <span><span class="va">plots</span><span class="op">$</span><span class="va">weights</span>     <span class="co"># model weight bar chart</span></span>
 <span><span class="va">plots</span><span class="op">$</span><span class="va">model_fit_N</span> <span class="co"># individual Normal model fits</span></span>
 <span><span class="va">plots</span><span class="op">$</span><span class="va">MA_fit</span>      <span class="co"># model-averaged dose-response curve</span></span></code></pre></div>
-<hr>
 </div>
 </div>
 <div class="section level2">
@@ -390,7 +388,6 @@ via bridge sampling.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">plots_bs</span><span class="op">$</span><span class="va">BMDs</span></span>
 <span><span class="va">plots_bs</span><span class="op">$</span><span class="va">weights</span></span></code></pre></div>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="quantal-data">Quantal data<a class="anchor" aria-label="anchor" href="#quantal-data"></a>
@@ -438,15 +435,11 @@ is the <strong>intra-litter correlation</strong> (ICC): how similar
 littermates are relative to animals from different litters. It gets a
 PERT prior <code>pert_dist(0, mode, 1, 4)</code> and is estimated from
 the data alongside all other parameters.</p>
-</div>
-<div class="section level2">
-<h2 id="practical-consequence-ignoring-litter-when-its-present-underestimates-variance-overestimates-precision-bmd-confidence-interval-is-artificially-too-narrow--the-beta-binomial-accounts-for-this-extra-variance-producing-honest-wider-uncertainty-intervals-">
-<strong>Practical consequence:</strong> ignoring litter when it’s
+<p><strong>Practical consequence:</strong> ignoring litter when it’s
 present underestimates variance → overestimates precision → BMD
 confidence interval is artificially too narrow. The Beta-Binomial
 accounts for this extra variance, producing honest (wider) uncertainty
-intervals.<a class="anchor" aria-label="anchor" href="#practical-consequence-ignoring-litter-when-its-present-underestimates-variance-overestimates-precision-bmd-confidence-interval-is-artificially-too-narrow--the-beta-binomial-accounts-for-this-extra-variance-producing-honest-wider-uncertainty-intervals-"></a>
-</h2>
+intervals.</p>
 </div>
 <div class="section level2">
 <h2 id="informative-priors">Informative priors<a class="anchor" aria-label="anchor" href="#informative-priors"></a>
@@ -489,7 +482,6 @@ changed:</p>
 <span>  d.std    <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  d.trunc  <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="individual-level-data">Individual-level data<a class="anchor" aria-label="anchor" href="#individual-level-data"></a>
@@ -505,7 +497,6 @@ statistics, pass <code>sumstats = FALSE</code>:</p>
 <span>  sumstats <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  q        <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="extracting-and-printing-results">Extracting and printing results<a class="anchor" aria-label="anchor" href="#extracting-and-printing-results"></a>
@@ -531,7 +522,6 @@ statistics, pass <code>sumstats = FALSE</code>:</p>
 <span></span>
 <span><span class="co"># Goodness-of-fit check (Bayes factor vs saturated model)</span></span>
 <span><span class="va">fit_lp</span><span class="op">$</span><span class="va">gof_check</span></span></code></pre></div>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="working-with-covariates">Working with covariates<a class="anchor" aria-label="anchor" href="#working-with-covariates"></a>
@@ -549,7 +539,6 @@ functions:</p>
 <span></span>
 <span><span class="va">fit_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/full.laplace_MA_Cov.html">full.laplace_MA_Cov</a></span><span class="op">(</span><span class="va">data_N_cov</span>, <span class="va">data_LN_cov</span><span class="op">)</span></span>
 <span><span class="va">fit_cov</span><span class="op">$</span><span class="va">MA</span></span></code></pre></div>
-<hr>
 </div>
 <div class="section level2">
 <h2 id="summary-of-key-functions">Summary of key functions<a class="anchor" aria-label="anchor" href="#summary-of-key-functions"></a>

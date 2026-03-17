@@ -2,7 +2,7 @@
 title: "Introduction to BMABMDR: Bayesian Model Averaging for Benchmark Dose Analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to BMABMDR}
+  %\VignetteIndexEntry{Introduction to BMABMDR: Bayesian Model Averaging for Benchmark Dose Analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -89,7 +89,7 @@ The eight dose-response shapes are:
 | `P4` | Probit |
 | `L4` | Logit |
 
----
+
 
 ## Continuous data — Laplace approximation
 
@@ -205,7 +205,7 @@ The same pattern holds in `sampling_MA()` — the HMC chains are only launched f
 
 **Practical implication**: if you know the response is sigmoidal and want only Hill-family models, this runs roughly 4× faster than the default:
 
-```r
+```{r}
 pw        <- rep(0, 16)
 pw[c(3, 11)] <- 1   # H4_N and H4_LN only
 
@@ -230,7 +230,7 @@ plots$model_fit_N # individual Normal model fits
 plots$MA_fit      # model-averaged dose-response curve
 ```
 
----
+
 
 ## Continuous data — Full Bayesian (bridge sampling)
 
@@ -271,7 +271,7 @@ plots_bs$BMDs
 plots_bs$weights
 ```
 
----
+
 
 ## Quantal data
 
@@ -316,7 +316,7 @@ where $\alpha_i = \pi_i \left(\frac{1}{\rho} - 1\right)$, $\quad \beta_i = (1-\p
 $\rho \in (0,1)$ is the **intra-litter correlation** (ICC): how similar littermates are relative to animals from different litters. It gets a PERT prior `pert_dist(0, mode, 1, 4)` and is estimated from the data alongside all other parameters.
 
 **Practical consequence:** ignoring litter when it's present underestimates variance → overestimates precision → BMD confidence interval is artificially too narrow. The Beta-Binomial accounts for this extra variance, producing honest (wider) uncertainty intervals.
----
+
 
 ## Informative priors
 
@@ -361,7 +361,7 @@ data_N_custom <- PREP_DATA_N(
 )
 ```
 
----
+
 
 ## Individual-level data
 
@@ -379,7 +379,7 @@ data_N_indiv <- PREP_DATA_N(
 )
 ```
 
----
+
 
 ## Extracting and printing results
 
@@ -406,7 +406,7 @@ fit_lp$MA_dr
 fit_lp$gof_check
 ```
 
----
+
 
 ## Working with covariates
 
@@ -425,7 +425,7 @@ fit_cov <- full.laplace_MA_Cov(data_N_cov, data_LN_cov)
 fit_cov$MA
 ```
 
----
+
 
 ## Summary of key functions
 
