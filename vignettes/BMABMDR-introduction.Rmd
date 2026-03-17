@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE   # set FALSE to keep build times short; flip to TRUE with a fast machine
+  eval = TRUE # set FALSE to keep build times short; flip to TRUE with a fast machine
 )
 ```
 
@@ -369,8 +369,18 @@ If you have raw individual observations rather than group summary statistics, pa
 `sumstats = FALSE`:
 
 ```{r individual}
-indiv_data <- read.csv(system.file("data", "test_data_cont.txt",
-                                   package = "BMABMDR"), sep = " ")
+# PREP_DATA_N(sumstats = FALSE) expects a 2-column data frame:
+#   column 1 = dose, column 2 = response (one row per animal)
+#
+# We simulate individual-level data from the immunotoxicity summary statistics
+# to demonstrate the workflow.
+set.seed(42)
+indiv_data <- do.call(rbind, lapply(seq_len(nrow(dat5)), function(i) {
+  data.frame(
+    dose     = rep(dat5$Dose[i], dat5$n[i]),
+    response = rnorm(dat5$n[i], mean = dat5$Mean[i], sd = dat5$SD[i])
+  )
+}))
 
 data_N_indiv <- PREP_DATA_N(
   data     = indiv_data,
@@ -415,13 +425,15 @@ variants of the preparation and fitting functions:
 
 ```{r covariate}
 data("continuous_cov")
+# Note: the .rda file contains an object named 'data_cont_covariate'
 
-data_N_cov  <- PREP_DATA_NCOV(data = continuous_cov,
-                               sumstats = TRUE, sd = TRUE, q = 0.1)
-data_LN_cov <- PREP_DATA_LNCOV(data = continuous_cov,
-                                sumstats = TRUE, sd = TRUE, q = 0.1)
-
-fit_cov <- full.laplace_MA_Cov(data_N_cov, data_LN_cov)
+# full.laplace_MA_Cov() takes raw data and calls PREP_DATA_NCOV() internally
+fit_cov <- full.laplace_MA_Cov(
+  data     = data_cont_covariate,
+  sumstats = TRUE,
+  sd       = TRUE,
+  q        = 0.1
+)
 fit_cov$MA
 ```
 
