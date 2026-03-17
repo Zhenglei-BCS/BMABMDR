@@ -433,7 +433,15 @@ fit_cov <- full.laplace_MA_Cov(
 fit_cov$MA
 ```
 
+Note that he function expects the data frame columns by position, not by name:
 
+- Column 1: Dose
+- Column 2: Response (Mean)
+- Column 3: SD
+- Column 4: N
+- Column 5: Covariate
+
+So the covariate is simply the 5th column — no separate argument needed. `data_cont_covariate` already has Covariate as column 5, which matches this expectation.
 
 ## Summary of key functions
 
