@@ -43,4 +43,5 @@ rsconnect/
 .Rproj.user
 
 # Development articles (not part of the package)
-dev/
+dev/*
+!dev/*.md
