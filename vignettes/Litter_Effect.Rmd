@@ -9,7 +9,7 @@ The key distinction is the **data format**:
 - **Standard quantal** (`data_quantal`): one row per dose group, columns = `dose`, `response` (total affected), `size` (total N)
 - **Quantal with litter** (`data_quantal_litter`): one row per **litter**, columns = `dose`, `y` (affected in that litter), `n` (litter size)
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 library(BMABMDR)
 
 # --- Standard quantal (no litter): one row per dose group ---
@@ -45,15 +45,15 @@ fit_ql$MA
 
 # --- Converting individual binary data to litter-level format ---
 # Suppose you have raw individual binary outcomes:
-set.seed(42)
+set.seed(123)
 indiv_quantal <- data.frame(
-  dose   = rep(c(0, 5, 15, 50, 100), each = 60),
-  litter = rep(rep(1:3, each = 20), 5),  # 3 litters per dose, 20 pups each
-  y      = c(rbinom(60, 1, 0.05),        # dose 0:   5% background
-             rbinom(60, 1, 0.10),        # dose 5:  10%
-             rbinom(60, 1, 0.20),        # dose 15: 20%
-             rbinom(60, 1, 0.35),        # dose 50: 35%
-             rbinom(60, 1, 0.60))        # dose 100: 60%
+  dose   = rep(c(0, 5, 15, 50, 100), each = 200),
+  litter = rep(rep(1:10, each = 20), 5),  # 10 litters per dose, 20 pups each
+  y      = c(rbinom(200, 1, 0.05),        # dose 0:   5% background
+             rbinom(200, 1, 0.10),         # dose 5:  10%
+             rbinom(200, 1, 0.20),         # dose 15: 20%
+             rbinom(200, 1, 0.35),         # dose 50: 35%
+             rbinom(200, 1, 0.60))         # dose 100: 60%
 )
 head(indiv_quantal)
 #>   dose litter y
@@ -74,12 +74,12 @@ litter_quantal <- indiv_quantal |>
   as.data.frame()
 
 litter_quantal
-#>    dose y  n
-#> 1     0 1 20
-#> 2     0 0 20
-#> 3     0 2 20
-#> 4     5 3 20
-#> ...
+#>    dose  y  n
+#> 1     0  1 20
+#> 2     0  0 20
+#> 3     0  2 20
+#> 4     5  3 20
+#> ...  (10 litters × 5 doses = 50 rows)
 
 # Now fit with litter effect
 data_QL2 <- PREP_DATA_QA(data = litter_quantal,
@@ -117,17 +117,19 @@ Key differences from the standard (non-clustered) continuous workflow:
 The package ships `EggShellThickness.csv`, a study where hens were exposed to
 different concentrations and eggshell thickness was measured per cage.
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 library(BMABMDR)
 
-# Load individual-level data (one row per cage/hen)
-eggshell <- read.csv(system.file("extdata", "EggShellThickness.csv",
-                                  package = "BMABMDR"))
+# EggShellThickness.csv lives in data/ in the source tree (not inst/extdata),
+# so it is not installed with the package. We locate it relative to the
+# vignette source directory.
+eggshell_path <- here::here("data", "EggShellThickness.csv")
+if (!file.exists(eggshell_path)) {
+  # Fallback when rendering from vignettes/
 
-# If system.file returns empty, read from the data/ folder directly
-if (nrow(eggshell) == 0) {
-  eggshell <- read.csv("../data/EggShellThickness.csv")
+  eggshell_path <- file.path("..", "data", "EggShellThickness.csv")
 }
+eggshell <- read.csv(eggshell_path)
 
 head(eggshell)
 #>   Exposure Cage Eggshell.Thickness
