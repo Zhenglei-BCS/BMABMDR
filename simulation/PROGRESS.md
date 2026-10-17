@@ -92,3 +92,16 @@ Command:
 then `Rscript simulation/analyze_results.R simulation/results/full_nrep30`.
 If interrupted: simply re-run the same command; finished replicates in
 `raw/` are skipped.
+
+### Step 7 – Status when session ended (2026-10-17 ~19:40 UTC)
+- Full-grid 30-replicate run was ~330/600 replicates done; raw files are
+  git-ignored, so they are NOT in the repository.
+- README section "4. Results" still has a placeholder.
+
+## Next steps
+1. Re-run (resumes / regenerates; ~50 min on 4 cores):
+   `SIM_MODE=full SIM_NREP=30 SIM_CORES=4 SIM_OUT=simulation/results/full_nrep30 Rscript simulation/run_simulation.R`
+2. `Rscript simulation/analyze_results.R simulation/results/full_nrep30`
+3. Commit `results/full_nrep30/*.csv`, `*.png`, `all_results.rds`, and
+   replace RESULTS_PLACEHOLDER in README.md with the key tables/findings.
+4. Optionally scale to `SIM_NREP=200` for the final study.
