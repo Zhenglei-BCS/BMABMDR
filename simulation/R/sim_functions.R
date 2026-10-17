@@ -172,7 +172,7 @@ model_draws <- function(fit, i) {
 #' (B) Best_sep: best-weight model of each separate fit, its own BMD posterior
 est_separate <- function(fits, qs, pvec) {
   ma <- best <- vector("list", length(qs))
-  mods <- BMABMDR::get_models("continuous")
+  mods <- unname(BMABMDR::get_models("continuous"))
   for (k in seq_along(qs)) {
     f <- fits[[k]]$fit
     if (!fit_ok(f)) {
@@ -195,7 +195,7 @@ est_separate <- function(fits, qs, pvec) {
 #' (D) MA_joint: ONE fit at q_ref, all BMRs from the weight-mixture of all
 #'     models' draws (model averaging of the derived BMDs)
 est_joint <- function(fit_ref, q_ref, qs, pvec, n_draws = 2000, min_weight = 1e-4) {
-  mods <- BMABMDR::get_models("continuous")
+  mods <- unname(BMABMDR::get_models("continuous"))
   empty <- data.frame(q = qs, BMDL = NA, BMD = NA, BMDU = NA, p_inf = NA, best_model = NA)
   if (!fit_ok(fit_ref)) return(list(Best_joint = empty, MA_joint = empty))
   inc <- fit_ref$is_increasing

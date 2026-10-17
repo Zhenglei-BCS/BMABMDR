@@ -62,3 +62,33 @@ Four estimators per simulated data set (BMRs q = 0.1, 0.2, 0.5):
 disentangle *model averaging vs model selection* from *separate vs single fit*.
 Code: `simulation/R/sim_functions.R` (truth, data generation, inversion
 `bmd_from_draws()`, estimators, performance measures).
+
+### Step 4 – Scripts written (done)
+- `simulation/run_simulation.R`: scenario grid, parallel (`mclapply`) loop,
+  **one .rds per scenario x replicate** in `<out>/raw/` (re-running resumes),
+  collection into `<out>/all_results.rds`.
+- `simulation/analyze_results.R`: performance tables + figures.
+- Note: package install must be done from a copy because `configure` in the
+  repo is not executable:
+  `git archive HEAD | tar -x -C /tmp/bmabuild && chmod +x /tmp/bmabuild/configure*
+   && MAKEFLAGS=-j4 R CMD INSTALL /tmp/bmabuild` (~15-20 min, 46 Stan models).
+- True BMDs checked against closed forms (e.g. Hill d=2, b=30, c=3:
+  BMD20 = 30*sqrt(0.1/0.9) = 10, BMD50 = 30/sqrt(3) = 17.32) – OK.
+
+### Step 5 – Self-checks and pilot (done)
+- `bmd_from_draws()` evaluated at q_new = q_ref reproduces the fitted BMD
+  draws (`par2`) for all 16 models, increasing and decreasing data:
+  max abs difference ~2.5e-11.
+- One `full.laplace_MA` fit (16 models, ndraws = 5000-10000) takes ~1.5-4 s.
+- Pilot (`Rscript simulation/run_simulation.R`, 2 scenarios x 3 reps):
+  6 tasks in 0.5 min on 4 cores, all four arms produce estimates. Pilot
+  output was not kept (it is regenerated in 30 s).
+- `simulation/` added to `.Rbuildignore`; raw replicate files are git-ignored
+  (`simulation/.gitignore`).
+
+### Step 6 – Full-grid run with 30 replicates (started 2026-10-17 ~18:55 UTC)
+Command:
+`SIM_MODE=full SIM_NREP=30 SIM_CORES=4 SIM_OUT=simulation/results/full_nrep30 Rscript simulation/run_simulation.R`
+then `Rscript simulation/analyze_results.R simulation/results/full_nrep30`.
+If interrupted: simply re-run the same command; finished replicates in
+`raw/` are skipped.
